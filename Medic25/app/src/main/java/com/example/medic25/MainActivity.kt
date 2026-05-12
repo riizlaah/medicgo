@@ -2,7 +2,6 @@ package com.example.medic25
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.RoundedCorner
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,10 +23,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,8 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.medic25.ui.theme.Cyan
+import com.example.medic25.ui.theme.DarkGreen
 import com.example.medic25.ui.theme.Medic25Theme
 import kotlinx.coroutines.launch
 
@@ -53,10 +51,13 @@ class MainActivity : ComponentActivity() {
             Medic25Theme {
                 val snackState = remember { SnackbarHostState() }
 
-                Scaffold(modifier = Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackState) }) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    snackbarHost = { SnackbarHost(snackState) }) { innerPadding ->
                     var username by remember { mutableStateOf("") }
                     var password by remember { mutableStateOf("") }
                     val scope = rememberCoroutineScope()
+                    var loading by remember { mutableStateOf(false) }
                     val ctx = LocalContext.current
 
                     Column(
@@ -65,10 +66,7 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .background(
                                 brush = Brush.horizontalGradient(
-                                    listOf(
-                                        Color(0xFF009688),
-                                        Color(0xFF1E6220)
-                                    )
+                                    listOf(Cyan, DarkGreen)
                                 )
                             )
                             .padding(12.dp)
@@ -79,13 +77,15 @@ class MainActivity : ComponentActivity() {
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(24.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         )
                         Spacer(Modifier.height(48.dp))
                         Column(
                             Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(32.dp))
                                 .background(Color.White)
                                 .padding(24.dp)
                         ) {
@@ -101,29 +101,40 @@ class MainActivity : ComponentActivity() {
                                 { password = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Password") }, visualTransformation = PasswordVisualTransformation())
+                                label = { Text("Password") },
+                                visualTransformation = PasswordVisualTransformation()
+                            )
                             Spacer(Modifier.height(24.dp))
-                            Button(
-                                {
-                                    if(username.isEmpty()) return@Button
-                                    if(password.isEmpty()) return@Button
-                                    scope.launch {
-                                        when(val msg = HttpClient.login(username, password)) {
-                                            "ok" -> {
-                                                val intent = Intent(ctx, HomeActivity::class.java)
-                                                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                                                ctx.startActivity(intent)
-                                            }
-                                            else -> {snackState.showSnackbar(msg)}
-                                        }
+                            GradientBtn({
+                                scope.launch {
+                                    if(username.isEmpty()) {
+                                        snackState.showSnackbar("Username is required")
+                                        return@launch
                                     }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                            ) {
-                                Text("Login")
+                                    if(password.isEmpty()) {
+                                        snackState.showSnackbar("Password is required")
+                                        return@launch
+                                    }
+                                    loading = true
+                                    when(val msg = HttpClient.login(username, password)) {
+                                        "ok" -> {
+                                            val intent = Intent(ctx, HomeActivity::class.java)
+                                            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                                            ctx.startActivity(intent)
+                                        }
+                                        else -> {snackState.showSnackbar(msg)}
+                                    }
+                                    loading = false
+                                }
+                            },Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.fillMaxWidth()) {
+                                LoadingOrContent(loading, {
+                                    Text("Login", fontWeight = FontWeight.Bold)
+                                })
                             }
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("Don't have an account?")
                                 TextButton({
                                     val intent = Intent(ctx, RegisterActivity::class.java)

@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace API_25.Controllers
 {
-    [Route("medicgo-api/v1/users[controller]")]
+    [Route("medicgo-api/v1/[controller]")]
     [ApiController]
     public class AppointmentsController : ControllerBase
     {
@@ -45,16 +45,17 @@ namespace API_25.Controllers
         public IActionResult Book(BookAppointmentDTO input)
         {
             var allowed = new[] { "debit_card", "credit_card", "paypal" };
-            if (!allowed.Contains(input.paymentMethod)) return Helper.err("Payment method not supported");
+            if (!allowed.Contains(input.paymentMethod)) return Helper.msg("Payment method not supported.", 422);
             var doctor = dbc.Doctors.FirstOrDefault(d => d.Id == input.doctorId);
-            if(doctor == null) return Helper.err("Doctor not found");
+            if(doctor == null) return Helper.msg("Doctor not found.", 404);
             var userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if(input.couponCode != null || input.couponCode != "")
             {
                 var coupon = dbc.PromoCodes.FirstOrDefault(pc => pc.Code == input.couponCode);
-                if (coupon == null) return Helper.err("Coupon not found");
-                if (DateTime.Now > coupon.ExpiryDate) return Helper.err("Coupon expired");
-                if (coupon.Quota < 1) return Helper.err("Coupon quota exceeded");
+                if (coupon == null) return Helper.msg("Coupon not found", 404);
+                if (DateTime.Now > coupon.ExpiryDate) return Helper.msg("Coupon expired.", 422);
+                if (coupon.Quota < 1) return Helper.msg("Coupon quota exceeded.", 422);
+                coupon.Quota -= 1;
                 dbc.Appointments.Add(new Appointment
                 {
                     PatientId = userId,
@@ -75,7 +76,7 @@ namespace API_25.Controllers
                 });
             }
             dbc.SaveChanges();
-            return Helper.json(null);
+            return Helper.msg("Appointment booked successfully.");
         }
     }
 

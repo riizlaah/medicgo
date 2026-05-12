@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -39,6 +40,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.text.isDigitsOnly
+import com.example.medic25.ui.theme.Cyan
+import com.example.medic25.ui.theme.DarkGreen
 import com.example.medic25.ui.theme.Medic25Theme
 import kotlinx.coroutines.launch
 
@@ -59,6 +62,7 @@ class RegisterActivity : ComponentActivity() {
                     var username by remember { mutableStateOf("") }
                     var password by remember { mutableStateOf("") }
                     var password2 by remember { mutableStateOf("") }
+                    var loading by remember { mutableStateOf(false) }
                     val scope = rememberCoroutineScope()
                     val ctx = LocalContext.current
 
@@ -88,7 +92,7 @@ class RegisterActivity : ComponentActivity() {
                         Column(
                             Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(32.dp))
                                 .background(Color.White)
                                 .padding(24.dp)
                         ) {
@@ -97,21 +101,21 @@ class RegisterActivity : ComponentActivity() {
                                 { fullname = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Username") })
+                                label = { Text("Full Name") })
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 email,
                                 { email = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Username") })
+                                label = { Text("Email") })
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 phone,
                                 { phone = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Username") })
+                                label = { Text("Phone") })
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 username,
@@ -132,30 +136,56 @@ class RegisterActivity : ComponentActivity() {
                                 { password2 = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Password") }, visualTransformation = PasswordVisualTransformation())
+                                label = { Text("Confirm Password") }, visualTransformation = PasswordVisualTransformation())
                             Spacer(Modifier.height(24.dp))
-                            Button(
-                                {
-                                    if(fullname.isEmpty()) return@Button
-                                    if(username.isEmpty()) return@Button
-                                    if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()) return@Button
-                                    if(!phone.isDigitsOnly()) return@Button
-                                    if(password.length < 8) return@Button
-                                    if(password != password2) return@Button
-                                    scope.launch {
-                                        when(val msg = HttpClient.register(username, fullname, email, phone, password)) {
-                                            "ok" -> {finish()}
-                                            else -> snackbarHostState.showSnackbar(msg)
-                                        }
+                            GradientBtn({
+
+                                scope.launch {
+                                    if(fullname.isBlank()) {
+                                        snackbarHostState.showSnackbar("Full name required")
+                                        return@launch
                                     }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(CircleShape)
-                            ) {
-                                Text("Register")
+                                    if(username.isBlank()) {
+                                        snackbarHostState.showSnackbar("Username required")
+                                        return@launch
+                                    }
+                                    if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                        snackbarHostState.showSnackbar("Email not valid")
+                                        return@launch
+                                    }
+                                    if(!phone.isDigitsOnly()) {
+                                        snackbarHostState.showSnackbar("Phone Number is digit only")
+                                        return@launch
+                                    }
+                                    if(password.length < 8) {
+                                        snackbarHostState.showSnackbar("Password length must be 8 or more characters")
+                                        return@launch
+                                    }
+                                    val hasDigit = password.any { it.isDigit() }
+                                    val hasLetter = password.any { it.isLetter() }
+                                    val hasSymbol = password.any { !it.isLetterOrDigit() }
+                                    val hasLowercase = password.any {it.isLowerCase()}
+                                    val hasUppercase = password.any { it.isUpperCase() }
+                                    if(!hasDigit || !hasLetter || !hasSymbol || !hasLowercase || !hasUppercase) {
+                                        snackbarHostState.showSnackbar("Password must have lowercase & uppercase letter, digit, and symbol")
+                                    }
+                                    if(password != password2) {
+                                        snackbarHostState.showSnackbar("Password Confirmation not same")
+                                        return@launch
+                                    }
+                                    loading = true
+                                    when(val msg = HttpClient.register(username, fullname, email, phone, password)) {
+                                        "ok" -> {finish()}
+                                        else -> snackbarHostState.showSnackbar(msg)
+                                    }
+                                    loading = false
+                                }
+                            }, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.fillMaxWidth()) {
+                                LoadingOrContent(loading, {
+                                    Text("Register", fontWeight = FontWeight.Bold)
+                                })
                             }
-                            Row(Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text("Already have an account?")
                                 TextButton({finish()}) { Text("Login") }
                             }

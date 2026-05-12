@@ -31,11 +31,11 @@ namespace API_25.Controllers
             var user = dbc.Users.AsNoTracking().FirstOrDefault(u => u.Username == input.username);
             if (user == null)
             {
-                return Helper.err("User not found");
+                return Helper.msg("User not found.", 422);
             }
             if (!Helper.hashValid(input.password, user.PasswordHash))
             {
-                return Helper.err("Wrong username or password");
+                return Helper.msg("Wrong username or password.", 422);
             }
             return Helper.json(new
             {
@@ -43,7 +43,7 @@ namespace API_25.Controllers
                 username = user.Username,
                 role = user.Role,
                 token = generateToken(user.Id, user.Role)
-            });
+            }, "Login successful.");
         }
 
         [HttpPost("register")]
@@ -52,16 +52,21 @@ namespace API_25.Controllers
             var hasDigit = input.password.Any(Char.IsDigit);
             var hasLetter = input.password.Any(Char.IsLetter);
             var hasSymbol = input.password.Any(c => !Char.IsLetterOrDigit(c));
-            if (!hasDigit || !hasLetter || !hasSymbol || input.password.Length < 8) return Helper.err("Password must contain digit, letter, and symbol and minimum length 8 characters");
+            var hasUpper = input.password.Any(Char.IsUpper);
+            var hasLower = input.password.Any(Char.IsLower);
+            if (!hasDigit || !hasLetter || !hasSymbol || input.password.Length < 8)
+            {
+                return Helper.msg("Password must contain digit, lowercase and uppercase letter, and symbol and minimum length 8 characters.", 422);
+            }
             if(dbc.Users.Any(u => u.Username == input.username))
             {
-                return Helper.err("Username has been used");
+                return Helper.msg("Username has been used.", 422);
             }
             if (dbc.Users.Any(u => u.Email == input.email))
             {
-                return Helper.err("Email has been used");
+                return Helper.msg("Email has been used.", 422);
             }
-            if (!input.phone.All(Char.IsDigit)) return Helper.err("Must be digit only");
+            if (!input.phone.All(Char.IsDigit)) return Helper.msg("Must be digit only", 422);
             dbc.Users.Add(new Models.User {
                 Name = input.fullname,
                 Username = input.username,
@@ -71,14 +76,22 @@ namespace API_25.Controllers
                 Role = "patient"
             });
             dbc.SaveChanges();
-            return Helper.json(null);
+            return Helper.msg("User registered successfully.");
         }
 
         [HttpPost("logout")]
         [Authorize]
         public IActionResult Logout()
         {
-            return Ok();
+            var tokenId = User.FindFirstValue(JwtRegisteredClaimNames.Jti) ?? "";
+            if (tokenId == "" || tokenId == null) return Helper.msg("Token not valid", 422);
+            if (dbc.TokenBlacklists.Any(t => t.Token == tokenId)) return Helper.msg("Token has been blacklisted.", 422);
+            dbc.TokenBlacklists.Add(new TokenBlacklist  
+            {
+                Token = tokenId,
+            });
+            dbc.SaveChanges();
+            return Helper.msg("Log out successful.");
         }
 
         [HttpGet("profile")]
@@ -89,12 +102,15 @@ namespace API_25.Controllers
             var user = dbc.Users.First(u => u.Id == userId);
             return Ok(new
             {
-                userId = userId,
-                username = user.Username,
-                fullname = user.Name,
-                email = user.Email,
-                phone = user.Phone,
-                role = user.Role,
+                data = new
+                {
+                    userId = userId,
+                    username = user.Username,
+                    fullName = user.Name,
+                    email = user.Email,
+                    phone = user.Phone,
+                    role = user.Role,
+                }
             });
         }
 

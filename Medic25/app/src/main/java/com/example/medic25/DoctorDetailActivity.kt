@@ -47,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.medic25.ui.theme.Cyan
+import com.example.medic25.ui.theme.DarkGreen
 import com.example.medic25.ui.theme.Medic25Theme
 import kotlin.math.exp
 
@@ -91,7 +93,9 @@ class DoctorDetailActivity : ComponentActivity() {
                             colors = ButtonDefaults.buttonColors(Color.Transparent, Color.White),
                             border = BorderStroke(
                                 1.dp, Color.White,
-                            )
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(top = 12.dp, start = 12.dp)
                         ) {
                             Text("< Back")
                         }
@@ -108,9 +112,9 @@ class DoctorDetailActivity : ComponentActivity() {
                         Column(
                             Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(32.dp))
                                 .background(Color.White)
-                                .padding(12.dp)
+                                .padding(32.dp)
                         ) {
                             Text(
                                 doctor!!.name,
@@ -151,12 +155,12 @@ class DoctorDetailActivity : ComponentActivity() {
                             }
                             HorizontalDivider()
                             Row(
-                                Modifier.fillMaxWidth(),
+                                Modifier.fillMaxWidth().padding(top = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Button({}, Modifier.weight(1f)) { Text("BOOK NOW") }
+                                GradientBtn({}, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.weight(1f)) { Text("BOOK NOW") }
                                 Spacer(Modifier.width(12.dp))
-                                Button({}, Modifier.weight(1f)) { Text("SHARE") }
+                                GradientBtn({}, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.weight(0.75f)) { Text("SHARE") }
                                 Spacer(Modifier.width(12.dp))
                                 IconButton({}) {
                                     Icon(

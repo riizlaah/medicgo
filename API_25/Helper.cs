@@ -23,6 +23,14 @@ namespace API_25
             return json(null, msg, code);
         }
 
+        public static ObjectResult msg(string msg, int code = 200)
+        {
+            return new ObjectResult(new { message = msg })
+            {
+                StatusCode = code
+            };
+        }
+
         public static string hash(string text)
         {
             using(var sha256 = SHA256.Create())

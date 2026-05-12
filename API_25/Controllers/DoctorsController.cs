@@ -60,22 +60,39 @@ namespace API_25.Controllers
         {
             var d = dbc.Doctors.AsNoTracking().Include(d => d.Expertises).FirstOrDefault(d => d.Id == id);
             if (d == null) return Helper.err("Doctor not found");
-            return Helper.json(new
+            return Ok(new
             {
-                id = d.Id,
-                name = d.Name,
-                specialty = d.Specialty,
-                experience = d.Experience,
-                location = d.Location,
-                price = d.Price,
-                description = d.Description,
-                duration = d.Duration,
-                expertise = d.Expertises.Select(e => new
+                data = new
                 {
-                    title = e.Title,
-                    content = e.Content
-                })
+                    id = d.Id,
+                    name = d.Name,
+                    specialty = d.Specialty,
+                    experience = d.Experience,
+                    location = d.Location,
+                    price = d.Price,
+                    description = d.Description,
+                    duration = d.Duration,
+                    expertise = d.Expertises.Select(e => new
+                    {
+                        title = e.Title,
+                        content = e.Content
+                    })
+                }
             });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "admin")]
+        public IActionResult Create(DoctorDTO input)
+        {
+            if (input.price <= 0m) return Helper.msg("Price must be more than zero.", 422);
+            if (input.duration <= 0) return Helper.msg("Duration must be more than zero.", 422);
+            if (input.expertises.Length < 3) return Helper.msg("Must include 3 or more expertise/service.", 422);
+            if (dbc.Doctors.Any(d => d.Name == input.name)) return Helper.msg("There's already a registered doctor with that name.", 422);
+            var newDoctor = input.ToEntity();
+            dbc.Doctors.Add(newDoctor);
+            dbc.SaveChanges();
+            return Helper.msg("Doctor registered successfully.");
         }
 
         
@@ -90,10 +107,20 @@ namespace API_25.Controllers
         [Required] public string location { get; set; } = null!;
         [Required] public decimal price { get; set; } 
         [Required] public int duration { get; set; }
+        [Required] public Expertise[] expertises { get; set; }
 
         public Doctor ToEntity()
         {
-            return new Doctor { Name = name, Specialty = specialty, Description = description, Location = location, Price = price, Duration = duration };
+            var doc = new Doctor { Name = name, Specialty = specialty, Description = description, Location = location, Price = price, Duration = duration };
+            foreach(var exp in expertises)
+            {
+                doc.Expertises.Add(new Models.Expertise
+                {
+                    Title = exp.title,
+                    Content = exp.content,
+                });
+            }
+            return doc;
         }
 
         public Doctor ToEntity(int id)
@@ -101,4 +128,10 @@ namespace API_25.Controllers
             return new Doctor { Id = id, Name = name, Specialty = specialty, Description = description, Location = location, Price = price, Duration = duration };
         }
     }
+    public class Expertise
+    {
+        [Required] public string title { get; set; } = null!;
+        [Required] public string content { get; set; } = null!;
+    }
 }
+

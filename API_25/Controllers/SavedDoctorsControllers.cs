@@ -37,15 +37,16 @@ namespace API_25.Controllers
         [Authorize]
         public IActionResult Add(SaveDoctorDTO input)
         {
-            if (!dbc.Doctors.Any(d => d.Id == input.doctorId)) return Helper.err("Doctor not found");
+            if (!dbc.Doctors.Any(d => d.Id == input.doctorId)) return Helper.msg("Doctor not found.", 404);
             var userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (dbc.SavedDoctors.Any(d => d.DoctorId == input.doctorId && d.PatientId == userId)) return Helper.msg("This doctors has been saved.", 422);
             dbc.SavedDoctors.Add(new SavedDoctor
             {
                 DoctorId = input.doctorId,
                 PatientId = userId,
             });
             dbc.SaveChanges();
-            return Helper.json(null);
+            return Helper.msg("Doctor saved successfully.");
         }
 
         [HttpDelete("{id}")]
@@ -56,7 +57,7 @@ namespace API_25.Controllers
             var sd = dbc.SavedDoctors.Find(id);
             dbc.SavedDoctors.Remove(sd);
             dbc.SaveChanges();
-            return Helper.json(null);
+            return Helper.msg("Saved doctor removed successfully.");
         }
 
     }

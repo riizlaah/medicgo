@@ -46,6 +46,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.medic25.ui.theme.Cyan
+import com.example.medic25.ui.theme.DarkGreen
 import com.example.medic25.ui.theme.Medic25Theme
 import kotlinx.coroutines.delay
 
@@ -80,10 +82,7 @@ class HomeActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .background(
                                 brush = Brush.horizontalGradient(
-                                    listOf(
-                                        Color(0xFF009688),
-                                        Color(0xFF1E6220)
-                                    )
+                                    listOf(Cyan, DarkGreen)
                                 )
                             )
                     ) {
@@ -109,8 +108,9 @@ class HomeActivity : ComponentActivity() {
                         Column(
                             Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(32.dp))
                                 .background(Color.White)
+                                .padding(12.dp)
                         ) {
                             OutlinedTextField(
                                 search,
@@ -186,7 +186,9 @@ class HomeActivity : ComponentActivity() {
                                             Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Button({}, Modifier.weight(1f)) { Text("BOOK NOW") }
+                                            GradientBtn({}, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.weight(1f)) {
+                                                Text("BOOK NOW")
+                                            }
                                             Spacer(Modifier.width(12.dp))
                                             IconButton({}) {
                                                 Icon(

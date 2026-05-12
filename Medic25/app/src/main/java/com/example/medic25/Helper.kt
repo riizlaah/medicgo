@@ -85,7 +85,9 @@ object HttpClient {
         val res = jsonReq("users/login", """{"username": "$username", "password": "$password"}""", "POST")
         if(res.body.isNullOrEmpty()) return "Login Failed"
         if(res.code == 200) {
-            token = JSONObject(res.body).getJSONObject("data").getString("token")
+            val data = JSONObject(res.body).getJSONObject("data")
+            token = data.getString("token")
+            if(data.getString("role") == "admin") return "Not for admin"
             return "ok"
         }
         return try {

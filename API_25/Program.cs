@@ -4,6 +4,9 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using API_25;
 using API_25.Models;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +44,19 @@ builder.Services.AddAuthentication().AddJwtBearer(opt =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+    opt.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async ctx =>
+        {
+            var dbc = ctx.HttpContext.RequestServices.GetRequiredService<MedicGoContext>();
+            var tokenId = ctx.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti) ?? "";
+            var blacklisted = await dbc.TokenBlacklists.AnyAsync(t => t.Token == tokenId);
+            if (blacklisted)
+            {
+                ctx.Fail("Token blacklisted");
+            }
+        }
     };
 });
 
