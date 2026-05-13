@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace API_25.Controllers
 {
-    [Route("medicgo-api/v1/[controller]")]
+    [Route("medicgo-api/v1/appointments")]
     [ApiController]
     public class AppointmentsController : ControllerBase
     {
@@ -28,16 +28,19 @@ namespace API_25.Controllers
             {
                 data = data.OrderBy(a => a.CreatedAt);
             }
-            return Helper.json(data.Select(a => new
+            return Ok(new
             {
-                id = a.Id,
-                doctorId = a.DoctorId,
-                doctorName = a.Doctor.Name,
-                specialty = a.Doctor.Specialty,
-                paymentMethod = a.PaymentMethod,
-                status = a.Status,
-                createdAt = a.CreatedAt,
-            }));
+                data = data.Select(a => new
+                {
+                    id = a.Id,
+                    doctorId = a.DoctorId,
+                    doctorName = a.Doctor.Name,
+                    specialty = a.Doctor.Specialty,
+                    paymentMethod = a.PaymentMethod,
+                    status = a.Status,
+                    createdAt = a.CreatedAt,
+                })
+            });
         }
 
         [HttpPost]
@@ -49,7 +52,7 @@ namespace API_25.Controllers
             var doctor = dbc.Doctors.FirstOrDefault(d => d.Id == input.doctorId);
             if(doctor == null) return Helper.msg("Doctor not found.", 404);
             var userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            if(input.couponCode != null || input.couponCode != "")
+            if(input.couponCode != "")
             {
                 var coupon = dbc.PromoCodes.FirstOrDefault(pc => pc.Code == input.couponCode);
                 if (coupon == null) return Helper.msg("Coupon not found", 404);
@@ -84,6 +87,6 @@ namespace API_25.Controllers
     {
         [Required] public int doctorId { get; set;  }
         [Required] public string paymentMethod { get; set; } = null!;
-        public string couponCode { get; set; } = null!;
+        [Required(AllowEmptyStrings = true)]public string couponCode { get; set; } = null!;
     }
 }

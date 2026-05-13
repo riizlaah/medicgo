@@ -1,5 +1,6 @@
 package com.example.medic25
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -55,24 +56,22 @@ import kotlin.math.exp
 class DoctorDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val doctorId = intent?.data?.lastPathSegment?.toIntOrNull() ?: intent.getIntExtra("id", -1)
         enableEdgeToEdge()
         setContent {
             Medic25Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    var search by remember { mutableStateOf("") }
-                    var password by remember { mutableStateOf("") }
                     val scope = rememberCoroutineScope()
-                    val ctx = LocalContext.current
                     var doctor by remember { mutableStateOf<Doctor?>(null) }
                     var selectedTab by remember { mutableIntStateOf(0) }
                     val tabs = listOf("About Doctor", "Expertise")
-                    var selectedTabPrimary by remember { mutableIntStateOf(0) }
+                    var dialogOpened by remember { mutableStateOf(false) }
 
 
 
 
                     LaunchedEffect(Unit) {
-                        doctor = HttpClient.getDoctorById(intent.getIntExtra("id", 0))
+                        doctor = HttpClient.getDoctorById(doctorId)
                     }
 
                     Column(
@@ -158,9 +157,17 @@ class DoctorDetailActivity : ComponentActivity() {
                                 Modifier.fillMaxWidth().padding(top = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                GradientBtn({}, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.weight(1f)) { Text("BOOK NOW") }
+                                GradientBtn({
+                                    dialogOpened = true
+                                },  Modifier.weight(1f)) { Text("BOOK NOW") }
                                 Spacer(Modifier.width(12.dp))
-                                GradientBtn({}, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.weight(0.75f)) { Text("SHARE") }
+                                GradientBtn({
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, "Check out this doctor: medicgo://doctor/$doctorId")
+                                    }
+                                    startActivity(Intent.createChooser(shareIntent, null))
+                                }, Modifier.weight(0.75f)) { Text("SHARE") }
                                 Spacer(Modifier.width(12.dp))
                                 IconButton({}) {
                                     Icon(
@@ -169,9 +176,9 @@ class DoctorDetailActivity : ComponentActivity() {
                                     )
                                 }
                             }
-
                         }
 
+                        BookAppointmentDialog(dialogOpened, {dialogOpened = false}, doctor!!.id, doctor!!.price)
                     }
                 }
             }

@@ -1,6 +1,5 @@
 package com.example.medic25
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
@@ -14,14 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
@@ -40,8 +35,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.text.isDigitsOnly
-import com.example.medic25.ui.theme.Cyan
-import com.example.medic25.ui.theme.DarkGreen
 import com.example.medic25.ui.theme.Medic25Theme
 import kotlinx.coroutines.launch
 
@@ -51,17 +44,15 @@ class RegisterActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Medic25Theme {
-                val snackbarHostState = remember { SnackbarHostState() }
 
-                Scaffold(modifier = Modifier.fillMaxSize(), snackbarHost = {
-                    SnackbarHost(snackbarHostState)
-                }) { innerPadding ->
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     var fullname by remember { mutableStateOf("") }
                     var email by remember { mutableStateOf("") }
                     var phone by remember { mutableStateOf("") }
                     var username by remember { mutableStateOf("") }
                     var password by remember { mutableStateOf("") }
                     var password2 by remember { mutableStateOf("") }
+                    var errMsg by remember { mutableStateOf("") }
                     var loading by remember { mutableStateOf(false) }
                     val scope = rememberCoroutineScope()
                     val ctx = LocalContext.current
@@ -86,7 +77,9 @@ class RegisterActivity : ComponentActivity() {
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(24.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         )
                         Spacer(Modifier.height(48.dp))
                         Column(
@@ -129,65 +122,86 @@ class RegisterActivity : ComponentActivity() {
                                 { password = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Password") }, visualTransformation = PasswordVisualTransformation())
+                                label = { Text("Password") },
+                                visualTransformation = PasswordVisualTransformation()
+                            )
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 password2,
                                 { password2 = it },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Confirm Password") }, visualTransformation = PasswordVisualTransformation())
+                                label = { Text("Confirm Password") },
+                                visualTransformation = PasswordVisualTransformation()
+                            )
+                            ErrText(errMsg, Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp))
                             Spacer(Modifier.height(24.dp))
                             GradientBtn({
-
+                                if (fullname.isBlank()) {
+                                    errMsg = "Full name required"
+                                    return@GradientBtn
+                                }
+                                if (username.isBlank()) {
+                                    errMsg = "Username required"
+                                    return@GradientBtn
+                                }
+                                if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                    errMsg = "Email not valid"
+                                    return@GradientBtn
+                                }
+                                if (!phone.isDigitsOnly()) {
+                                    errMsg = "Phone Number is digit only"
+                                    return@GradientBtn
+                                }
+                                if (password.length < 8) {
+                                    errMsg = "Password length must be 8 or more characters"
+                                    return@GradientBtn
+                                }
+                                val hasDigit = password.any { it.isDigit() }
+                                val hasLetter = password.any { it.isLetter() }
+                                val hasSymbol = password.any { !it.isLetterOrDigit() }
+                                val hasLowercase = password.any { it.isLowerCase() }
+                                val hasUppercase = password.any { it.isUpperCase() }
+                                if (!hasDigit || !hasLetter || !hasSymbol || !hasLowercase || !hasUppercase) {
+                                    errMsg =
+                                        "Password must have lowercase & uppercase letter, digit, and symbol"
+                                }
+                                if (password != password2) {
+                                    errMsg = "Password Confirmation not same"
+                                    return@GradientBtn
+                                }
+                                errMsg = ""
                                 scope.launch {
-                                    if(fullname.isBlank()) {
-                                        snackbarHostState.showSnackbar("Full name required")
-                                        return@launch
-                                    }
-                                    if(username.isBlank()) {
-                                        snackbarHostState.showSnackbar("Username required")
-                                        return@launch
-                                    }
-                                    if(!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                        snackbarHostState.showSnackbar("Email not valid")
-                                        return@launch
-                                    }
-                                    if(!phone.isDigitsOnly()) {
-                                        snackbarHostState.showSnackbar("Phone Number is digit only")
-                                        return@launch
-                                    }
-                                    if(password.length < 8) {
-                                        snackbarHostState.showSnackbar("Password length must be 8 or more characters")
-                                        return@launch
-                                    }
-                                    val hasDigit = password.any { it.isDigit() }
-                                    val hasLetter = password.any { it.isLetter() }
-                                    val hasSymbol = password.any { !it.isLetterOrDigit() }
-                                    val hasLowercase = password.any {it.isLowerCase()}
-                                    val hasUppercase = password.any { it.isUpperCase() }
-                                    if(!hasDigit || !hasLetter || !hasSymbol || !hasLowercase || !hasUppercase) {
-                                        snackbarHostState.showSnackbar("Password must have lowercase & uppercase letter, digit, and symbol")
-                                    }
-                                    if(password != password2) {
-                                        snackbarHostState.showSnackbar("Password Confirmation not same")
-                                        return@launch
-                                    }
+
                                     loading = true
-                                    when(val msg = HttpClient.register(username, fullname, email, phone, password)) {
-                                        "ok" -> {finish()}
-                                        else -> snackbarHostState.showSnackbar(msg)
+                                    when (val msg = HttpClient.register(
+                                        username,
+                                        fullname,
+                                        email,
+                                        phone,
+                                        password
+                                    )) {
+                                        "ok" -> {
+                                            finish()
+                                        }
+
+                                        else -> errMsg = msg
                                     }
                                     loading = false
                                 }
-                            }, Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.fillMaxWidth()) {
+                            }, Modifier.fillMaxWidth()) {
                                 LoadingOrContent(loading, {
                                     Text("Register", fontWeight = FontWeight.Bold)
                                 })
                             }
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("Already have an account?")
-                                TextButton({finish()}) { Text("Login") }
+                                TextButton({ finish() }) { Text("Login") }
                             }
                         }
                     }

@@ -49,15 +49,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Medic25Theme {
-                val snackState = remember { SnackbarHostState() }
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    snackbarHost = { SnackbarHost(snackState) }) { innerPadding ->
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     var username by remember { mutableStateOf("") }
                     var password by remember { mutableStateOf("") }
                     val scope = rememberCoroutineScope()
                     var loading by remember { mutableStateOf(false) }
+                    var errMsg by remember { mutableStateOf("") }
                     val ctx = LocalContext.current
 
                     Column(
@@ -104,17 +101,19 @@ class MainActivity : ComponentActivity() {
                                 label = { Text("Password") },
                                 visualTransformation = PasswordVisualTransformation()
                             )
+                            ErrText(errMsg, Modifier.fillMaxWidth().padding(top = 12.dp))
                             Spacer(Modifier.height(24.dp))
                             GradientBtn({
+                                if(username.isEmpty()) {
+                                    errMsg = "Username is required"
+                                    return@GradientBtn
+                                }
+                                if(password.isEmpty()) {
+                                    errMsg = "Password is required"
+                                    return@GradientBtn
+                                }
+                                errMsg = ""
                                 scope.launch {
-                                    if(username.isEmpty()) {
-                                        snackState.showSnackbar("Username is required")
-                                        return@launch
-                                    }
-                                    if(password.isEmpty()) {
-                                        snackState.showSnackbar("Password is required")
-                                        return@launch
-                                    }
                                     loading = true
                                     when(val msg = HttpClient.login(username, password)) {
                                         "ok" -> {
@@ -122,11 +121,11 @@ class MainActivity : ComponentActivity() {
                                             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                                             ctx.startActivity(intent)
                                         }
-                                        else -> {snackState.showSnackbar(msg)}
+                                        else -> {errMsg = msg}
                                     }
                                     loading = false
                                 }
-                            },Brush.horizontalGradient(listOf(Cyan, DarkGreen)), Modifier.fillMaxWidth()) {
+                            }, Modifier.fillMaxWidth()) {
                                 LoadingOrContent(loading, {
                                     Text("Login", fontWeight = FontWeight.Bold)
                                 })

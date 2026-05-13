@@ -22,15 +22,18 @@ namespace API_25.Controllers
         {
             var userId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var data = dbc.SavedDoctors.Include(sd => sd.Doctor).Where(sd => sd.PatientId == userId).ToList();
-            return Helper.json(data.Select(sd => new
+            return Ok(new
             {
-                savedId = sd.Id,
-                doctorId = sd.DoctorId,
-                doctorName = sd.Doctor.Name,
-                specialty = sd.Doctor.Specialty,
-                experience = sd.Doctor.Experience,
-                location = sd.Doctor.Location,
-            }));
+                data = data.Select(sd => new
+                {
+                    savedId = sd.Id,
+                    doctorId = sd.DoctorId,
+                    doctorName = sd.Doctor.Name,
+                    specialty = sd.Doctor.Specialty,
+                    experience = sd.Doctor.Experience,
+                    location = sd.Doctor.Location,
+                })
+            });
         }
 
         [HttpPost]

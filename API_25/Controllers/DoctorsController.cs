@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace API_25.Controllers
 {
-    [Route("medicgo-api/v1/[controller]")]
+    [Route("medicgo-api/v1/doctors")]
     [ApiController]
     public class DoctorsController : ControllerBase
     {
@@ -16,11 +16,23 @@ namespace API_25.Controllers
 
         [HttpGet]
         [Authorize]
-        public IActionResult GetAll(string search = "", int page = 1, int size = 10, string sort = "desc")
+        public IActionResult GetAll(string search = "", string category = "all", int page = 1, int size = 10, string sort = "desc")
         {
-            if (page < 1) return Helper.err("Page not valid");
-            if (size < 1) return Helper.err("Size not valid");
+            if (page < 1) return Helper.msg("Page not valid", 422);
+            if (size < 1) return Helper.msg("Size not valid", 422);
+            var allowedCategories = new[] { "all", "general", "specialist" };
+            if (!allowedCategories.Contains(category)) return Helper.msg("Category not valid");
             var query = dbc.Doctors.AsQueryable();
+            if(category != "all")
+            {
+                if(category == "general")
+                {
+                    query = query.Where(d => d.Specialty == "General Practitioner");
+                } else
+                {
+                    query = query.Where(d => d.Specialty != "General Practitioner");
+                }
+            }
             if (search != "")
             {
                 query = query.Where(d => EF.Functions.Like(d.Specialty, "%" + search + "%") || EF.Functions.Like(d.Name, "%" + search + "%"));
@@ -32,7 +44,7 @@ namespace API_25.Controllers
             {
                 query = query.OrderBy(d => d.CreatedAt);
             }
-            var data0 = Convert.ToInt32(Math.Floor((decimal)query.Count() / size));
+            var totalPages = Convert.ToInt32(Math.Ceiling((decimal)query.Count() / size));
             var data1 = query.Skip((page - 1) * size).Take(size).ToList();
             return Ok(new
             {
@@ -47,9 +59,9 @@ namespace API_25.Controllers
                 }),
                 pagination = new
                 {
-                    page = page,
-                    size = size,
-                    totalPages = data0
+                    page,
+                    size,
+                    totalPages
                 }
             });
         }
